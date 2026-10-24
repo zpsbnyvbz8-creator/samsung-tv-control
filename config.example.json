@@ -1,0 +1,9 @@
+{
+  "tvIp": "",
+  "wsPort": 8002,
+  "wsToken": "",
+  "appName": "SamsungTizenTool",
+  "upnpPort": 9197,
+  "upnpControlPath": "/upnp/control/RenderingControl1",
+  "autoConnect": true
+}

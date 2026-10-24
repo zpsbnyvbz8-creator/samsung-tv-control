@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Local sensitive configuration (IPs, Tokens)
+config.json
+.env
+*.local
+
+# Logs and debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
