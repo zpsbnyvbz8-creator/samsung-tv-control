@@ -1,0 +1,65 @@
+[
+  {
+    "id": "setup-wizard-skip-2019",
+    "name": "⚡ Skip Setup Wizard (Samsung 2019 QLED)",
+    "description": "Bypasses the initial setup wizard after power reset (Language, Terms, SmartThings, Channels, Account)",
+    "steps": [
+      { "type": "wait", "ms": 1000, "description": "Initial settle delay" },
+      { "type": "key", "key": "KEY_ENTER", "description": "Select Default Language" },
+      { "type": "wait", "ms": 1800, "description": "Wait for Terms screen" },
+      { "type": "key", "key": "KEY_DOWN", "description": "Focus 'I Agree / Accept All'" },
+      { "type": "wait", "ms": 600, "description": "Wait" },
+      { "type": "key", "key": "KEY_ENTER", "description": "Confirm Terms of Service" },
+      { "type": "wait", "ms": 2000, "description": "Wait for SmartThings screen" },
+      { "type": "key", "key": "KEY_RIGHT", "description": "Navigate to 'Skip SmartThings'" },
+      { "type": "wait", "ms": 600, "description": "Wait" },
+      { "type": "key", "key": "KEY_ENTER", "description": "Confirm Skip SmartThings" },
+      { "type": "wait", "ms": 2000, "description": "Wait for Channel Scan screen" },
+      { "type": "key", "key": "KEY_RIGHT", "description": "Navigate to 'Skip Scan'" },
+      { "type": "wait", "ms": 600, "description": "Wait" },
+      { "type": "key", "key": "KEY_ENTER", "description": "Confirm Skip Channel Tuning" },
+      { "type": "wait", "ms": 2000, "description": "Wait for Samsung Account screen" },
+      { "type": "key", "key": "KEY_RIGHT", "description": "Navigate to 'Skip Account'" },
+      { "type": "wait", "ms": 600, "description": "Wait" },
+      { "type": "key", "key": "KEY_ENTER", "description": "Confirm Skip Account" },
+      { "type": "wait", "ms": 1500, "description": "Wait for Completion screen" },
+      { "type": "key", "key": "KEY_ENTER", "description": "Finish Setup & Start TV" }
+    ]
+  },
+  {
+    "id": "switch-hdmi1",
+    "name": "📺 Direct Switch to HDMI 1",
+    "description": "Sends Source and HDMI 1 command",
+    "steps": [
+      { "type": "key", "key": "KEY_SOURCE", "description": "Open Source Menu" },
+      { "type": "wait", "ms": 1000, "description": "Wait for Source Menu" },
+      { "type": "key", "key": "KEY_HDMI1", "description": "Select HDMI 1" },
+      { "type": "wait", "ms": 500, "description": "Wait" },
+      { "type": "key", "key": "KEY_ENTER", "description": "Confirm Selection" }
+    ]
+  },
+  {
+    "id": "switch-hdmi2",
+    "name": "🎮 Direct Switch to HDMI 2",
+    "description": "Sends Source and HDMI 2 command",
+    "steps": [
+      { "type": "key", "key": "KEY_SOURCE", "description": "Open Source Menu" },
+      { "type": "wait", "ms": 1000, "description": "Wait for Source Menu" },
+      { "type": "key", "key": "KEY_HDMI2", "description": "Select HDMI 2" },
+      { "type": "wait", "ms": 500, "description": "Wait" },
+      { "type": "key", "key": "KEY_ENTER", "description": "Confirm Selection" }
+    ]
+  },
+  {
+    "id": "quick-dismiss-dialog",
+    "name": "❌ Dismiss On-Screen Prompt / Dialog",
+    "description": "Quickly sends Return and Exit twice to clear overlay popups",
+    "steps": [
+      { "type": "key", "key": "KEY_RETURN", "description": "Press Return" },
+      { "type": "wait", "ms": 400, "description": "Wait" },
+      { "type": "key", "key": "KEY_EXIT", "description": "Press Exit" },
+      { "type": "wait", "ms": 400, "description": "Wait" },
+      { "type": "key", "key": "KEY_RETURN", "description": "Press Return again" }
+    ]
+  }
+]

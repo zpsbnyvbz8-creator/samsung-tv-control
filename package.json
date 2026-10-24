@@ -1,0 +1,27 @@
+{
+  "name": "samsung-tv-control",
+  "version": "1.0.0",
+  "description": "Local Samsung Tizen TV LAN Diagnostic, Remote & Volume Bypass Suite",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "samsung",
+    "tizen",
+    "remote",
+    "upnp",
+    "renderingcontrol",
+    "volume-bypass"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "fast-xml-parser": "^5.11.2",
+    "ws": "^8.22.0"
+  }
+}

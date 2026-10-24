@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Samsung Tizen TV Controller & Volume Bypass</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- TOP STATUS & IP HEADER -->
+  <header class="top-header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#05131e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+          <polyline points="17 2 12 7 7 2"></polyline>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title">
+          Samsung Tizen LAN Controller
+          <span class="brand-badge">QE43Q60R (2019)</span>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-dim);" id="headerSubtitle">
+          Offline Local Suite • WebSocket & UPnP SOAP
+        </div>
+      </div>
+    </div>
+
+    <div class="header-controls">
+      <!-- IP Input -->
+      <div class="ip-input-group">
+        <span class="ip-prefix">TV IP</span>
+        <input type="text" id="targetIpInput" class="ip-field" placeholder="z.B. 192.168.178.50" spellcheck="false" autocomplete="off">
+        <button id="btnSetIp" class="btn btn-primary" style="border-radius: 0; padding: 8px 12px;">Setzen</button>
+      </div>
+
+      <!-- Quick Scan Button -->
+      <button id="btnQuickScan" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <span>Auto-Scan</span>
+      </button>
+
+      <!-- Status Badges -->
+      <div id="wsStatusBadge" class="status-badge disconnected" title="WebSocket Remote Verbindung">
+        <span class="status-dot"></span>
+        <span id="wsStatusText">WS: Getrennt</span>
+      </div>
+
+      <div id="upnpStatusBadge" class="status-badge connected" title="UPnP RenderingControl SOAP Port">
+        <span class="status-dot"></span>
+        <span id="upnpStatusText">SOAP :9197</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION TABS -->
+  <nav class="nav-tabs">
+    <button class="tab-btn active" data-tab="tab-volume">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+      Lautstärke-Bypass (SOAP)
+    </button>
+    <button class="tab-btn" data-tab="tab-remote">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+      Fernbedienung & Setup-Skipper
+    </button>
+    <button class="tab-btn" data-tab="tab-scanner">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+      Netzwerk & Auto-Discovery
+    </button>
+    <button class="tab-btn" data-tab="tab-diagnostics">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+      Diagnose & Live-Logs
+    </button>
+  </nav>
+
+  <!-- MAIN CONTAINER -->
+  <main class="main-container">
+
+    <!-- TAB 1: VOLUME BYPASS (UPNP RENDERINGCONTROL) -->
+    <section id="tab-volume" class="tab-content active">
+      <div class="card volume-hero">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+              UPnP RenderingControl Audio-Bypass
+            </h2>
+            <p class="card-desc">
+              Überbrückt den Tizen-Firmware-Bug: Sendet absolute Lautstärkewerte (0-100) direkt per SOAP/XML an den DLNA-Hardware-Audioprozessor (Port 9197).
+            </p>
+          </div>
+          <div>
+            <button id="btnRefreshVolume" class="btn btn-secondary" title="Aktuellen Wert per GetVolume abfragen">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+              Abfragen
+            </button>
+          </div>
+        </div>
+
+        <div class="volume-alert-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          <div>
+            <strong>Warum dieser Bypass funktioniert:</strong> Wenn die Fernbedienungs-Tasten ("Leiser") durch Software-Hänger der Tizen-Oberfläche ignoriert werden, umgeht der integrierte DLNA MediaRenderer (<code style="color:var(--accent-cyan)">urn:schemas-upnp-org:service:RenderingControl:1</code>) die GUI komplett und zwingt die Lautstärke direkt in den Audiochip.
+          </div>
+        </div>
+
+        <div class="volume-gauge-container">
+          <div class="volume-display">
+            <span id="volumeValueDisplay" class="volume-number">--</span>
+            <span class="volume-percent">%</span>
+          </div>
+
+          <!-- Range Slider -->
+          <div class="volume-slider-wrapper">
+            <input type="range" id="volumeSlider" class="volume-slider" min="0" max="100" value="20" step="1">
+          </div>
+
+          <!-- Fine-Grained Step Buttons -->
+          <div class="volume-steps-row">
+            <button class="btn-step" data-step="-10">-10%</button>
+            <button class="btn-step" data-step="-5">-5%</button>
+            <button class="btn-step" data-step="-2">-2%</button>
+            <button class="btn-step" data-step="-1">-1%</button>
+            <button id="btnToggleMute" class="btn btn-secondary" style="font-weight: 700;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+              <span id="muteBtnLabel">Mute</span>
+            </button>
+            <button class="btn-step" data-step="1">+1%</button>
+            <button class="btn-step" data-step="2">+2%</button>
+            <button class="btn-step" data-step="5">+5%</button>
+            <button class="btn-step" data-step="10">+10%</button>
+          </div>
+
+          <!-- Quick Presets -->
+          <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 10px; font-weight: 600; text-transform: uppercase;">Schnell-Presets (Direktwert erzwingen)</div>
+          <div class="volume-presets-grid">
+            <button class="btn-preset" data-preset="0">0% (Stumm)</button>
+            <button class="btn-preset" data-preset="5">5% (Sehr leise)</button>
+            <button class="btn-preset" data-preset="10">10%</button>
+            <button class="btn-preset" data-preset="18">18% (Zimmer)</button>
+            <button class="btn-preset" data-preset="25">25%</button>
+            <button class="btn-preset" data-preset="35">35%</button>
+            <button class="btn-preset" data-preset="50">50%</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: REMOTE & SETUP-SKIPPER -->
+    <section id="tab-remote" class="tab-content">
+      <!-- HERO: AUTO-SETUP-SKIPPER -->
+      <div class="card setup-hero-card" style="margin-bottom: 24px;">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title" style="color: #c084fc;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              Auto-Setup-Skipper & Makro-Sequencer
+            </h2>
+            <p class="card-desc">
+              Umgeht den Samsung Erstinstallations-Assistenten nach Kaltstart / Stromverlust per automatischer Tasten- und Pausen-Abfolge.
+            </p>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button id="btnRunActiveMacro" class="btn btn-primary" style="background: linear-gradient(135deg, #a855f7, #6366f1); color:white;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              Makro Ausführen
+            </button>
+            <button id="btnPauseMacro" class="btn btn-secondary" style="display:none;">Pause</button>
+            <button id="btnStopMacro" class="btn btn-danger" style="display:none;">Stopp</button>
+          </div>
+        </div>
+
+        <div class="macro-status-box">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-weight: 700; font-size: 0.95rem;" id="macroActiveName">⚡ Skip Setup Wizard (Samsung 2019 QLED)</div>
+            <div id="macroStatusPill" class="status-badge" style="background: rgba(255,255,255,0.05);">Bereit</div>
+          </div>
+          
+          <div class="progress-track">
+            <div id="macroProgressBar" class="progress-fill"></div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted);">
+            <span id="macroStepDetail">Schritt 0 von 0</span>
+            <span id="macroCountdownTimer">Wartet...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- REMOTE & MACRO BUILDER GRID -->
+      <div class="remote-layout">
+        <!-- VIRTUAL REMOTE -->
+        <div class="remote-chassis">
+          <div class="remote-power-row">
+            <button class="btn-remote-power" id="btnKeyPower" title="Power (KEY_POWER)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+            </button>
+            <div style="text-align: right;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Samsung Smart Remote</div>
+              <div style="font-size: 0.65rem; color: var(--accent-cyan);" id="remoteWsIndicator">WSS :8002 / :8001</div>
+            </div>
+          </div>
+
+          <!-- Top Navigation Controls -->
+          <div class="remote-top-buttons">
+            <button class="btn-remote-action" data-key="KEY_HOME">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+              <span>HOME [H]</span>
+            </button>
+            <button class="btn-remote-action" data-key="KEY_SOURCE">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+              <span>SOURCE [S]</span>
+            </button>
+            <button class="btn-remote-action" data-key="KEY_RETURN">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path></svg>
+              <span>ZURÜCK [Esc]</span>
+            </button>
+          </div>
+
+          <!-- D-PAD WHEEL -->
+          <div class="dpad-container">
+            <button class="dpad-btn dpad-up" data-key="KEY_UP" title="Oben (Pfeiltaste Oben)">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+            </button>
+            <button class="dpad-btn dpad-left" data-key="KEY_LEFT" title="Links (Pfeiltaste Links)">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <button class="dpad-btn dpad-right" data-key="KEY_RIGHT" title="Rechts (Pfeiltaste Rechts)">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+            <button class="dpad-btn dpad-down" data-key="KEY_DOWN" title="Unten (Pfeiltaste Unten)">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <button class="dpad-center" data-key="KEY_ENTER" title="OK / Enter (Eingabetaste)">
+              OK
+            </button>
+          </div>
+
+          <!-- ROCKERS (VOL & CH) -->
+          <div class="remote-rockers">
+            <div class="rocker-col">
+              <button class="rocker-btn" data-key="KEY_VOLUP" title="Lauter (WS)">+</button>
+              <div class="rocker-label">VOL</div>
+              <button class="rocker-btn" data-key="KEY_VOLDOWN" title="Leiser (WS)">−</button>
+            </div>
+            <div class="rocker-col">
+              <button class="rocker-btn" data-key="KEY_CHUP" title="Kanal +">+</button>
+              <div class="rocker-label">CH</div>
+              <button class="rocker-btn" data-key="KEY_CHDOWN" title="Kanal −">−</button>
+            </div>
+          </div>
+
+          <!-- HDMI DIRECT BUTTONS -->
+          <div class="hdmi-buttons-grid">
+            <button class="btn-hdmi" data-key="KEY_HDMI1">HDMI 1</button>
+            <button class="btn-hdmi" data-key="KEY_HDMI2">HDMI 2</button>
+            <button class="btn-hdmi" data-key="KEY_HDMI3">HDMI 3</button>
+            <button class="btn-hdmi" data-key="KEY_HDMI4">HDMI 4</button>
+          </div>
+
+          <div style="font-size: 0.75rem; color: var(--text-dim); text-align: center;">
+            Tastatur aktiv: <span class="shortcut-badge">↑ ↓ ← →</span> <span class="shortcut-badge">Enter</span> <span class="shortcut-badge">Esc</span>
+          </div>
+        </div>
+
+        <!-- MACRO BUILDER & PRESETS -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Makro-Verwaltung & Editor</h3>
+              <p class="card-desc">Befehlsabfolgen zusammenstellen, Pausenzeiten anpassen und ausführen.</p>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button id="btnToggleRecord" class="btn btn-secondary">
+                <span style="color:#ef4444;">●</span> Live-Aufnahme
+              </button>
+              <button id="btnSaveMacros" class="btn btn-secondary">Speichern</button>
+            </div>
+          </div>
+
+          <!-- Macro Selector Dropdown -->
+          <div style="margin-bottom: 16px; display:flex; gap:10px; align-items:center;">
+            <select id="macroSelect" style="flex:1; background:var(--bg-surface-elevated); color:var(--text-main); border:1px solid var(--border-subtle); padding:10px; border-radius:var(--radius-md); font-size:0.9rem;">
+              <!-- Populated via JS -->
+            </select>
+            <button id="btnNewMacro" class="btn btn-secondary">+ Neu</button>
+          </div>
+
+          <!-- Step List -->
+          <div id="macroStepList" class="macro-step-list">
+            <!-- Populated via JS -->
+          </div>
+
+          <!-- Add Step Form -->
+          <div style="margin-top: 16px; padding: 12px; background: var(--bg-surface-elevated); border-radius: var(--radius-md); display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <select id="newStepType" style="background: var(--bg-base); color: var(--text-main); border: 1px solid var(--border-subtle); padding: 8px; border-radius: var(--radius-sm);">
+              <option value="key">Taste (Key)</option>
+              <option value="wait">Pause (Wait)</option>
+              <option value="volume">Lautstärke (Bypass)</option>
+            </select>
+            <input type="text" id="newStepVal" placeholder="KEY_ENTER / 1000ms" style="flex: 1; min-width: 140px; background: var(--bg-base); color: var(--text-main); border: 1px solid var(--border-subtle); padding: 8px; border-radius: var(--radius-sm); font-family: var(--font-mono);">
+            <button id="btnAddStep" class="btn btn-primary" style="padding: 8px 14px;">+ Schritt</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: NETWORK SCANNER & DISCOVERY -->
+    <section id="tab-scanner" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Netzwerk-Scanner & Auto-Discovery</h2>
+            <p class="card-desc">Sucht per SSDP M-SEARCH (Multicast 239.255.255.250:1900), Windows ARP-Tabelle und Port-Scan nach dem Samsung TV.</p>
+          </div>
+          <div>
+            <button id="btnStartFullScan" class="btn btn-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              Vollständigen Suchlauf starten
+            </button>
+          </div>
+        </div>
+
+        <!-- Network Interfaces Card -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px;">
+          <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px;">
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Lokale Netzwerk-Adapter</div>
+            <div id="interfacesList" style="margin-top: 8px; font-family: var(--font-mono); font-size: 0.85rem;">
+              Lädt...
+            </div>
+          </div>
+          <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px;">
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Windows ARP-Nachbarn (Direkt-LAN)</div>
+            <div id="arpSummary" style="margin-top: 8px; font-family: var(--font-mono); font-size: 0.85rem;">
+              Lädt...
+            </div>
+          </div>
+        </div>
+
+        <!-- Discovery Results -->
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+            <h3 style="font-size: 1rem; font-weight: 700;">Gefundene Geräte</h3>
+            <span id="scanStatusBadge" class="status-badge" style="display:none;">Scan läuft...</span>
+          </div>
+
+          <div id="discoveredDevicesGrid" class="devices-grid">
+            <div style="color: var(--text-muted); font-size: 0.9rem; padding: 20px; text-align: center; grid-column: 1 / -1;">
+              Klicke auf "Vollständigen Suchlauf starten" oder gib die IP oben direkt ein.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: DIAGNOSTICS & LIVE LOGS -->
+    <section id="tab-diagnostics" class="tab-content">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+        <!-- REST & UPNP INSPECTOR -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Geräte-Inspektor</h3>
+            <div style="display:flex; gap:8px;">
+              <button id="btnFetchDeviceInfo" class="btn btn-secondary">REST Info (:8001)</button>
+              <button id="btnFetchUpnpDesc" class="btn btn-secondary">UPnP XML (:9197)</button>
+            </div>
+          </div>
+          <pre id="deviceInfoBox" class="json-view">// Klicke oben auf 'REST Info' oder 'UPnP XML' um Daten abzurufen</pre>
+        </div>
+
+        <!-- PORT SCAN INSPECTOR -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Samsung TV Port-Inspector</h3>
+            <button id="btnInspectPorts" class="btn btn-secondary">Ports Prüfen</button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;" id="portsInspectResults">
+            <div style="display:flex; justify-content:space-between; padding:8px; background:var(--bg-surface-elevated); border-radius:var(--radius-sm);">
+              <span>Port 8001 (REST API / WS Remote)</span>
+              <span id="p8001-stat" class="port-tag">Ungeprüft</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px; background:var(--bg-surface-elevated); border-radius:var(--radius-sm);">
+              <span>Port 8002 (WSS Secure Token Remote)</span>
+              <span id="p8002-stat" class="port-tag">Ungeprüft</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px; background:var(--bg-surface-elevated); border-radius:var(--radius-sm);">
+              <span>Port 9197 (UPnP DMR RenderingControl)</span>
+              <span id="p9197-stat" class="port-tag">Ungeprüft</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px; background:var(--bg-surface-elevated); border-radius:var(--radius-sm);">
+              <span>Port 7676 (UPnP MediaServer)</span>
+              <span id="p7676-stat" class="port-tag">Ungeprüft</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIVE LOG TERMINAL -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">Live-Protokoll & Netzwerk-Traffic (SOAP / WS / HTTP)</h3>
+            <p class="card-desc">Echtzeit-Übertragung aller versendeten SOAP-Requests, WS-Pakete und Status-Codes.</p>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <select id="logFilter" style="background:var(--bg-surface-elevated); color:var(--text-main); border:1px solid var(--border-subtle); padding:6px 10px; border-radius:var(--radius-sm); font-size:0.8rem;">
+              <option value="ALL">Alle Logs</option>
+              <option value="SOAP">Nur SOAP</option>
+              <option value="WS">Nur WebSocket</option>
+              <option value="ERROR">Nur Fehler</option>
+            </select>
+            <button id="btnClearLogs" class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;">Leeren</button>
+            <button id="btnCopyLogs" class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;">Kopieren</button>
+          </div>
+        </div>
+        <div id="logTerminal" class="log-terminal">
+          <!-- Populated in real-time -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODULAR JS FILES -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
