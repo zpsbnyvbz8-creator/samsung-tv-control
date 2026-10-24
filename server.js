@@ -15,6 +15,7 @@ import {
   fetchUpnpDescription,
   getLocalInterfaces,
   getArpTableIps,
+  sanitizeIp,
   SAMSUNG_PORTS
 } from './lib/scanner.js';
 import upnpClient from './lib/upnp-volume.js';
@@ -114,6 +115,9 @@ app.post('/api/config', async (req, res) => {
   try {
     const current = await loadConfig();
     const updated = { ...current, ...req.body };
+    if (updated.tvIp) {
+      updated.tvIp = sanitizeIp(updated.tvIp);
+    }
     await saveConfig(updated);
 
     if (updated.tvIp) {
@@ -162,9 +166,10 @@ app.get('/api/scan', async (req, res) => {
   broadcast('scan-status', { scanning: true, progress: 0 });
 
   try {
+    const cfg = await loadConfig();
     const devices = await scanSubnet((progress) => {
       broadcast('scan-status', { scanning: true, ...progress });
-    });
+    }, cfg.tvIp);
 
     isScanning = false;
     broadcast('scan-status', { scanning: false, totalFound: devices.length });
