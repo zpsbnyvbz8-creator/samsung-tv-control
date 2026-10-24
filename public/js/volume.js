@@ -82,7 +82,7 @@ export class VolumeController {
     this.updateUi(vol);
 
     try {
-      const res = await fetch('/api/volume', {
+      const res = await fetch(this.app.getApiUrl('/api/volume'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ip, volume: vol })
@@ -104,7 +104,7 @@ export class VolumeController {
 
     const newMute = !this.isMuted;
     try {
-      const res = await fetch('/api/mute', {
+      const res = await fetch(this.app.getApiUrl('/api/mute'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ip, mute: newMute })
@@ -122,7 +122,7 @@ export class VolumeController {
     if (!ip) return;
 
     try {
-      const res = await fetch(`/api/volume?ip=${encodeURIComponent(ip)}`);
+      const res = await fetch(this.app.getApiUrl(`/api/volume?ip=${encodeURIComponent(ip)}`));
       const data = await res.json();
       if (res.ok && data.volume !== undefined) {
         this.updateUi(data.volume);

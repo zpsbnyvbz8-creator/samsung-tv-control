@@ -43,7 +43,7 @@ export class DiagnosticsController {
     });
 
     this.btnClearLogs.addEventListener('click', async () => {
-      await fetch('/api/logs/clear', { method: 'POST' });
+      await fetch(this.app.getApiUrl('/api/logs/clear'), { method: 'POST' });
       this.logs = [];
       this.renderLogs();
     });
@@ -58,8 +58,8 @@ export class DiagnosticsController {
   async loadInterfacesAndArp() {
     try {
       const [ifRes, arpRes] = await Promise.all([
-        fetch('/api/interfaces'),
-        fetch('/api/arp')
+        fetch(this.app.getApiUrl('/api/interfaces')),
+        fetch(this.app.getApiUrl('/api/arp'))
       ]);
       const ifaces = await ifRes.json();
       const arps = await arpRes.json();
@@ -96,7 +96,7 @@ export class DiagnosticsController {
 
     this.deviceInfoBox.textContent = '// Lade Samsung Device Info von http://' + ip + ':8001/api/v2/ ...';
     try {
-      const res = await fetch(`/api/diag/device-info?ip=${encodeURIComponent(ip)}`);
+      const res = await fetch(this.app.getApiUrl(`/api/diag/device-info?ip=${encodeURIComponent(ip)}`));
       const data = await res.json();
       this.deviceInfoBox.textContent = JSON.stringify(data, null, 2);
     } catch (err) {
@@ -113,7 +113,7 @@ export class DiagnosticsController {
 
     this.deviceInfoBox.textContent = '// Lade UPnP DMR XML von http://' + ip + ':9197/dmr/SamsungMRDesc.xml ...';
     try {
-      const res = await fetch(`/api/diag/upnp-desc?ip=${encodeURIComponent(ip)}`);
+      const res = await fetch(this.app.getApiUrl(`/api/diag/upnp-desc?ip=${encodeURIComponent(ip)}`));
       const data = await res.json();
       if (data.reachable && data.xml) {
         this.deviceInfoBox.textContent = `// URL: ${data.url}\n\n` + data.xml;
@@ -143,7 +143,7 @@ export class DiagnosticsController {
     });
 
     try {
-      const res = await fetch('/api/diag/inspect-ports', {
+      const res = await fetch(this.app.getApiUrl('/api/diag/inspect-ports'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ip, ports: [8001, 8002, 9197, 7676] })
@@ -176,7 +176,7 @@ export class DiagnosticsController {
     `;
 
     try {
-      const res = await fetch('/api/scan');
+      const res = await fetch(this.app.getApiUrl('/api/scan'));
       const data = await res.json();
 
       this.scanStatusBadge.textContent = `Abgeschlossen (${data.devices.length} gefunden)`;

@@ -72,7 +72,7 @@ export class MacroController {
 
   async loadMacros() {
     try {
-      const res = await fetch('/api/macros');
+      const res = await fetch(this.app.getApiUrl('/api/macros'));
       this.macros = await res.json();
       this.renderDropdown();
       if (this.macros.length > 0) {
@@ -198,7 +198,7 @@ export class MacroController {
 
   async saveMacrosToServer() {
     try {
-      const res = await fetch('/api/macros', {
+      const res = await fetch(this.app.getApiUrl('/api/macros'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(this.macros)
@@ -283,7 +283,7 @@ export class MacroController {
     }
 
     try {
-      const res = await fetch('/api/macros/start', {
+      const res = await fetch(this.app.getApiUrl('/api/macros/start'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(this.currentMacro)
@@ -305,7 +305,7 @@ export class MacroController {
     const isPaused = this.btnPause.textContent === 'Fortsetzen';
     const endpoint = isPaused ? '/api/macros/resume' : '/api/macros/pause';
     try {
-      await fetch(endpoint, { method: 'POST' });
+      await fetch(this.app.getApiUrl(endpoint), { method: 'POST' });
     } catch (e) {
       console.error(e);
     }
@@ -313,7 +313,7 @@ export class MacroController {
 
   async stopMacro() {
     try {
-      await fetch('/api/macros/stop', { method: 'POST' });
+      await fetch(this.app.getApiUrl('/api/macros/stop'), { method: 'POST' });
     } catch (e) {
       console.error(e);
     }
