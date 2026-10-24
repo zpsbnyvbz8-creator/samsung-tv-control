@@ -55,29 +55,6 @@
     </div>
   </header>
 
-  <!-- CLOUD MODE / VERCEL BRIDGE BANNER (Shows automatically when deployed to Vercel/Cloud) -->
-  <div id="cloudModeBanner" style="display:none; background: linear-gradient(90deg, #181938, #2a1142); border-bottom: 1px solid rgba(168, 85, 247, 0.4); padding: 12px 24px;">
-    <div style="max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <span style="font-size: 1.3rem;">☁️</span>
-        <div>
-          <strong style="color: #c084fc; font-size: 0.92rem;">Vercel Cloud-Modus aktiv</strong>
-          <div style="font-size: 0.8rem; color: #cbd5e1;">
-            Cloud-Server können nicht direkt in dein lokales Heimnetzwerk / Direkt-LAN zugreifen. Verbinde deine lokale HTTPS-Bridge oder öffne die App direkt über localhost.
-          </div>
-        </div>
-      </div>
-
-      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-        <input type="text" id="bridgeUrlInput" placeholder="Bridge-URL (z.B. https://xxxx.loca.lt)" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.82rem; font-family: monospace; width: 260px;">
-        <button id="btnSaveBridgeUrl" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.82rem; background: #a855f7;">Bridge Setzen</button>
-        <a href="http://localhost:3000" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.82rem; text-decoration: none;">
-          Auf localhost:3000 wechseln
-        </a>
-      </div>
-    </div>
-  </div>
-
   <!-- NAVIGATION TABS -->
   <nav class="nav-tabs">
     <button class="tab-btn active" data-tab="tab-volume">

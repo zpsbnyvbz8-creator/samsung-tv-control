@@ -12,9 +12,6 @@ class SamsungApp {
       upnpPort: 9197
     };
 
-    this.isCloudMode = !['localhost', '127.0.0.1'].includes(location.hostname);
-    this.bridgeUrl = localStorage.getItem('samsung_bridge_url') || '';
-
     this.ws = null;
     this.targetIpInput = document.getElementById('targetIpInput');
     this.btnSetIp = document.getElementById('btnSetIp');
@@ -24,16 +21,11 @@ class SamsungApp {
     this.upnpStatusBadge = document.getElementById('upnpStatusBadge');
     this.upnpStatusText = document.getElementById('upnpStatusText');
 
-    this.cloudModeBanner = document.getElementById('cloudModeBanner');
-    this.bridgeUrlInput = document.getElementById('bridgeUrlInput');
-    this.btnSaveBridgeUrl = document.getElementById('btnSaveBridgeUrl');
-
     this.init();
   }
 
   async init() {
     this.initTabs();
-    this.initCloudModeBanner();
     this.initNotificationContainer();
 
     // Initialize sub-controllers
@@ -60,6 +52,7 @@ class SamsungApp {
     });
 
     this.btnQuickScan.addEventListener('click', () => {
+      // Switch to scanner tab and start
       this.switchTab('tab-scanner');
       this.diagnostics.startFullScan();
     });
@@ -70,47 +63,6 @@ class SamsungApp {
         this.volume.queryVolume();
       }, 800);
     }
-  }
-
-  initCloudModeBanner() {
-    if (this.isCloudMode && this.cloudModeBanner) {
-      this.cloudModeBanner.style.display = 'block';
-      if (this.bridgeUrlInput) {
-        this.bridgeUrlInput.value = this.bridgeUrl;
-      }
-
-      if (this.btnSaveBridgeUrl) {
-        this.btnSaveBridgeUrl.addEventListener('click', () => {
-          const val = this.bridgeUrlInput.value.trim().replace(/\/$/, '');
-          this.bridgeUrl = val;
-          localStorage.setItem('samsung_bridge_url', val);
-          this.showNotification(val ? `Bridge-URL gespeichert: ${val}` : 'Bridge-URL entfernt', 'success');
-
-          // Reconnect WS and reload config with new bridge
-          this.connectBackendWs();
-          this.loadConfig();
-        });
-      }
-    }
-  }
-
-  getApiUrl(path) {
-    if (this.isCloudMode && this.bridgeUrl) {
-      return `${this.bridgeUrl.replace(/\/$/, '')}${path}`;
-    }
-    return path;
-  }
-
-  getWsUrl(path) {
-    if (this.isCloudMode && this.bridgeUrl) {
-      const base = this.bridgeUrl
-        .replace(/^http:/, 'ws:')
-        .replace(/^https:/, 'wss:')
-        .replace(/\/$/, '');
-      return `${base}${path}`;
-    }
-    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${protocol}//${location.host}${path}`;
   }
 
   initTabs() {
@@ -138,15 +90,8 @@ class SamsungApp {
 
   async loadConfig() {
     try {
-      const res = await fetch(this.getApiUrl('/api/config'));
-      const data = await res.json();
-
-      if (data.status === 'cloud_mode' && !this.bridgeUrl) {
-        this.showNotification('Vercel Cloud-Modus aktiv: Bitte Bridge-URL eintragen oder lokal unter http://localhost:3000 nutzen.', 'warn');
-        return;
-      }
-
-      this.config = data;
+      const res = await fetch('/api/config');
+      this.config = await res.json();
       if (this.config.tvIp) {
         this.targetIpInput.value = this.config.tvIp;
       }
@@ -168,14 +113,14 @@ class SamsungApp {
     }
 
     try {
-      const res = await fetch(this.getApiUrl('/api/config'), {
+      const res = await fetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tvIp: ip })
       });
       const data = await res.json();
       if (res.ok) {
-        this.config = data.config || { tvIp: ip };
+        this.config = data.config;
         this.showNotification(`TV-Zieladresse gesetzt auf: ${ip}`, 'success');
 
         // Connect remote WS
@@ -192,7 +137,7 @@ class SamsungApp {
   async connectTvRemote(ip) {
     this.updateWsStatus('connecting');
     try {
-      const res = await fetch(this.getApiUrl('/api/remote/connect'), {
+      const res = await fetch('/api/remote/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ip })
@@ -221,44 +166,28 @@ class SamsungApp {
   }
 
   connectBackendWs() {
-    if (this.ws) {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${location.host}/ws`;
+
+    this.ws = new WebSocket(wsUrl);
+
+    this.ws.onopen = () => {
+      console.log('Connected to backend WebSocket');
+    };
+
+    this.ws.onmessage = (event) => {
       try {
-        this.ws.close();
-      } catch {}
-      this.ws = null;
-    }
+        const { type, payload } = JSON.parse(event.data);
+        this.handleBackendEvent(type, payload);
+      } catch (e) {
+        console.error('WS parse error', e);
+      }
+    };
 
-    const wsUrl = this.getWsUrl('/ws');
-
-    try {
-      this.ws = new WebSocket(wsUrl);
-
-      this.ws.onopen = () => {
-        console.log('Connected to backend WebSocket via', wsUrl);
-      };
-
-      this.ws.onmessage = (event) => {
-        try {
-          const { type, payload } = JSON.parse(event.data);
-          this.handleBackendEvent(type, payload);
-        } catch (e) {
-          console.error('WS parse error', e);
-        }
-      };
-
-      this.ws.onclose = () => {
-        setTimeout(() => {
-          if (this.isCloudMode && !this.bridgeUrl) return;
-          this.connectBackendWs();
-        }, 3000);
-      };
-
-      this.ws.onerror = () => {
-        // Handled silently
-      };
-    } catch (e) {
-      console.warn('WebSocket connection not supported or blocked in this environment', e);
-    }
+    this.ws.onclose = () => {
+      console.warn('Backend WebSocket disconnected, retrying in 2s...');
+      setTimeout(() => this.connectBackendWs(), 2000);
+    };
   }
 
   handleBackendEvent(type, payload) {

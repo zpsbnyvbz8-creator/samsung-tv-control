@@ -96,7 +96,7 @@ export class RemoteController {
     }
 
     try {
-      const res = await fetch(this.app.getApiUrl('/api/remote/key'), {
+      const res = await fetch('/api/remote/key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, cmd })
